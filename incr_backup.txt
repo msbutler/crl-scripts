@@ -1,0 +1,17 @@
+CREATE DATABASE foo;
+
+CREATE TABLE foo.bar (a INT);
+
+SHOW TABLES FROM foo;
+
+INSERT INTO foo.bar VALUES (1);
+
+BACKUP TABLE foo.bar INTO 'userfile:///foo';
+
+INSERT INTO foo.bar VALUES (1);                                                  
+
+BACKUP TABLE foo.bar INTO 'userfile:///foo';                                       
+
+SHOW BACKUPS IN 'userfile:///foo';
+
+
