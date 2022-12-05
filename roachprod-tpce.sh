@@ -1,4 +1,13 @@
 #!/bin/bash
+
+# This script can be used to setup a roachprod cluster, init and run the tpce
+# workload. I'd recommend the following workflow:
+# - run script once to setup the cluster and init the workload
+# - wait until the tmux session monitoring initizialation has finished
+# - run the script again to run the workload, skipping setup
+# 
+# To run the script, pass the config file name when executing this script. For
+# example, `./roachprod-tpce.sh tpce10TB`
 set -e
 
 . ./$1.sh
@@ -13,6 +22,12 @@ tpce:
   tpce_customers: $tpce_customers
   duration: $duration
 "
+
+exists=$(gsutil ls gs://cockroach-fixtures/tpce-csv/customers=$tpce_customers | wc -l)
+if (( $exists == 0 )); then
+  echo "$tpce_customers customer fixture does not exist"
+  exit 1
+fi
 
 echo "setup roachprod cluster? Press y"
 read setup
