@@ -13,7 +13,11 @@ pd_vol_size=3000
 # tpce init
 tpce_customers=500000
 
+# scheduled backup (runs every 15 minutes)
+inc_count=96
+inc_crontab="*/15 * * * *"
+
 # tpce run
-duration=23h
+duration=48h
 
 

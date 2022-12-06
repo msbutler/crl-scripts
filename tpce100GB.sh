@@ -18,6 +18,6 @@ inc_count=15
 inc_crontab="*/15 * * * *"
 
 # tpce run
-duration=1m
+duration=23h
 
 
