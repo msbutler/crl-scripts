@@ -31,8 +31,6 @@ do
   # sleep for 300 seconds, aka 5 mins
   sleep 300
   scheduleCount=$(roachprod sql $cluster_name:1 -- -e "SELECT * FROM [SELECT count(DISTINCT end_time) FROM [SHOW BACKUP FROM LATEST IN '$collection']] WHERE count > $inc_count")
-  echo "Backup Chain Length
- $scheduleCount"
   if [[ $scheduleCount == *"1 row"* ]]; then
     echo "Cancelling schedule"
     roachprod sql $cluster_name:1 -- -e "DROP SCHEDULES WITH x AS (SHOW SCHEDULES) SELECT id FROM x WHERE label = 'schedule_cluster'"
