@@ -14,8 +14,6 @@ pd_vol_size=3000
 tpce_customers=500000
 
 # tpce run
-# Before beginning the tpce workload, alter the default zone config back to 25
-# hours and and begin a backup schedule 
 duration=23h
 
 

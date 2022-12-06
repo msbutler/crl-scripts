@@ -4,7 +4,8 @@
 # workload. I'd recommend the following workflow:
 # - run script once to setup the cluster and init the workload
 # - wait until the tmux session monitoring initizialation has finished
-# - run the script again to run the workload, skipping setup
+# - run the script again to setup the backup schedule and the workload, 
+#   skipping setup
 # 
 # To run the script, pass the config file name when executing this script. For
 # example, `./roachprod-tpce.sh tpce10TB`
@@ -21,6 +22,9 @@ hardware:
 tpce: 
   tpce_customers: $tpce_customers
   duration: $duration
+backup:
+  inc_count: $inc_count
+  inc_crontab: $inc_crontab
 "
 
 exists=$(gsutil ls gs://cockroach-fixtures/tpce-csv/customers=$tpce_customers | wc -l)
@@ -43,14 +47,35 @@ if [[ "$setup" == "y" ]]; then
   echo "roachprod cluster set up"
 fi
 
-echo "Ready to init workload? Press y"
+echo "init workload? Press y"
 read init
 if [[ $init == "y" ]]; then
   roachprod run $cluster_name:$total_nodes -- "tmux new -d -s tpce-import \"sudo docker run cockroachdb/tpc-e:latest --init --customers=$tpce_customers --racks=$crdb_nodes \$(cat hosts.txt)\""
-  echo "To observe init script, run: 
+  echo "tpce init has begun. Do not run anything on cluster until
+  after init process completes. To observe init script, run: 
   roachprod ssh $cluster_name:$total_nodes
 followed by:
   tmux attach-session -t tpce-import "
+  exit 0
+fi
+
+echo "setup backup schedule? Press y"
+read backup
+if [[ $backup == "y" ]]; then
+  roachprod sql $cluster_name:1 -- -e "ALTER RANGE default CONFIGURE ZONE USING gc.ttlseconds = 90000"
+  
+  # This backup schedule will first run a full backup immediately and then the
+  # incremental backups at the given crontab cadence until the user cancels the
+  # backup schedules. To ensure that only one full backup chain gets created,
+  # begin the backup schedule at the beginning of the week, as a new full
+  # backup will get created on Sunday at Midnight ;)
+  #
+  # TODO(msbutler) automatically cancel the schedules once desired inc_count
+  # gets reached.
+  schedule_cmd="CREATE SCHEDULE schedule_cluster FOR BACKUP INTO
+'gs://cockroach-fixtures/backups/tpc-e/rev-history=true,inc-count=$inc_count,cluster/customers=$tpce_customers/$crdb_version?AUTH=implicit' WITH revision_history RECURRING '$inc_crontab' FULL BACKUP '@weekly' WITH SCHEDULE OPTIONS first_run = 'now'"
+  echo "$schedule_cmd"
+  roachprod sql $cluster_name:1 -- -e "$schedule_cmd"
 fi
 
 echo "run tpce workload? Press y"
