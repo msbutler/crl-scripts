@@ -59,6 +59,8 @@ followed by:
   exit 0
 fi
 
+collection="gs://cockroach-fixtures/backups/tpc-e/rev-history=true,inc-count=$inc_count,cluster/customers=$tpce_customers/$crdb_version?AUTH=implicit"
+
 echo "setup backup schedule? Press y"
 read backup
 if [[ $backup == "y" ]]; then
@@ -72,8 +74,7 @@ if [[ $backup == "y" ]]; then
   #
   # TODO(msbutler) automatically cancel the schedules once desired inc_count
   # gets reached.
-  schedule_cmd="CREATE SCHEDULE schedule_cluster FOR BACKUP INTO
-'gs://cockroach-fixtures/backups/tpc-e/rev-history=true,inc-count=$inc_count,cluster/customers=$tpce_customers/$crdb_version?AUTH=implicit' WITH revision_history RECURRING '$inc_crontab' FULL BACKUP '@weekly' WITH SCHEDULE OPTIONS first_run = 'now'"
+  schedule_cmd="CREATE SCHEDULE schedule_cluster FOR BACKUP INTO '$collection' WITH revision_history RECURRING '$inc_crontab' FULL BACKUP '@weekly' WITH SCHEDULE OPTIONS first_run = 'now'"
   echo "$schedule_cmd"
   roachprod sql $cluster_name:1 -- -e "$schedule_cmd"
 fi
@@ -82,5 +83,15 @@ echo "run tpce workload? Press y"
 read run
 if [[ $run == "y" ]]; then
   roachprod run $cluster_name:$total_nodes -- "tmux new -d -s tpce-driver \"sudo docker run cockroachdb/tpc-e:latest --customers=$tpce_customers --racks=$crdb_nodes --duration=$duration \$(cat hosts.txt)\""
+fi
+
+if [[ $monitor == "y" ]]; then
+  tmux
+  scheduleCount=$(roachprod sql $cluster_name:1 -- -e "SELECT * FROM [SELECT count(DISTINCT end_time) FROM [SHOW BACKUP FROM LATEST IN '$collection']] WHERE count > $inc_count")
+  echo "Backup Chain Length\n $scheduleCount"
+  if [[ $scheduleCount != *"0 rows"* ]]; then
+    echo "Cancelling schedule"
+    roachprod sql $cluster_name:1 -- -e "DROP SCHEDULES WITH x AS (SHOW SCHEDULES) SELECT id FROM x WHERE label = 'schedule_cluster'"
+  fi
 fi
 
