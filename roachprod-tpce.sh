@@ -12,20 +12,6 @@
 set -e
 
 . ./$1.sh
-echo "loading config from $1.sh:
-hardware: 
-  crdb_nodes: $crdb_nodes 
-  cluster_name: $cluster_name
-  crdb_version: $crdb_version
-  gce_machine_typ: $gce_machine_type
-  pd_vol_size: $pd_vol_size  
-tpce: 
-  tpce_customers: $tpce_customers
-  duration: $duration
-backup:
-  inc_count: $inc_count
-  inc_crontab: $inc_crontab
-"
 
 if [[ "$2" == "help" ]]; then
   echo "This script makes it a bit easier to spin up a roachprod cluster to run
@@ -43,6 +29,22 @@ Available commands:
 - monitor: creates a tmux session that counts the number of incremental backups
   in the latest full backup chain. TODO(msbutler): integrate in script
 "
+
+echo "config from $1.sh:
+hardware: 
+  crdb_nodes: $crdb_nodes 
+  cluster_name: $cluster_name
+  crdb_version: $crdb_version
+  gce_machine_typ: $gce_machine_type
+  pd_vol_size: $pd_vol_size  
+tpce: 
+  tpce_customers: $tpce_customers
+  duration: $duration
+backup:
+  inc_count: $inc_count
+  inc_crontab: $inc_crontab
+"
+
   exit 0
 fi
 
