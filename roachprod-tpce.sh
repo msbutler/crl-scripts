@@ -27,29 +27,44 @@ backup:
   inc_crontab: $inc_crontab
 "
 
+if [[ "$2" == "help" ]]; then
+  echo "This script makes it a bit easier to spin up a roachprod cluster to run
+the tpce workload and a backup schedule
+
+Run any of the following commands via:
+./roachprod-tpce [config_name] [cmd]
+
+Available commands:
+- setup: creates a roachprod cluster that's ready to init a tpc-e workload.
+- init: inits a tpce workload.
+- run: runs a tpce workload.
+- backup: begins a backup schedule that writes to the cockroach-fixtures
+  bucket.
+- monitor: creates a tmux session that counts the number of incremental backups
+  in the latest full backup chain. TODO(msbutler): integrate in script
+"
+  exit 0
+fi
+
 exists=$(gsutil ls gs://cockroach-fixtures/tpce-csv/customers=$tpce_customers | wc -l)
 if (( $exists == 0 )); then
   echo "$tpce_customers customer fixture does not exist"
   exit 1
 fi
 
-echo "setup roachprod cluster? Press y"
-read setup
-if [[ "$setup" == "y" ]]; then
-  roachprod create $cluster_name --nodes=$total_nodes --gce-machine-type=$gce_machine_type --gce-zones=us-central1-a --local-ssd=false --gce-pd-volume-size=$pd_vol_size --gce-min-cpu-platform='Intel Ice Lake'
-  roachprod install $cluster_name:$total_nodes docker
-  roachprod ip  $cluster_name:1-$crdb_nodes | sed 's/^/--hosts=/' | tr '\n' ' ' > hosts.txt
-  roachprod put $cluster_name:$total_nodes hosts.txt
-  rm hosts.txt
-  roachprod stage $cluster_name:1-$crdb_nodes release $crdb_version
-  roachprod start $cluster_name:1-$crdb_nodes --racks=$crdb_nodes
-  roachprod adminurl --open $cluster_name:1
-  echo "roachprod cluster set up"
+if [[ "$2" == "setup" ]]; then 
+    roachprod create $cluster_name --nodes=$total_nodes --gce-machine-type=$gce_machine_type --gce-zones=us-central1-a --local-ssd=false --gce-pd-volume-size=$pd_vol_size --gce-min-cpu-platform='Intel Ice Lake'
+    roachprod install $cluster_name:$total_nodes docker
+    roachprod ip  $cluster_name:1-$crdb_nodes | sed 's/^/--hosts=/' | tr '\n' ' ' > hosts.txt
+    roachprod put $cluster_name:$total_nodes hosts.txt
+    rm hosts.txt
+    roachprod stage $cluster_name:1-$crdb_nodes release $crdb_version
+    roachprod start $cluster_name:1-$crdb_nodes --racks=$crdb_nodes
+    roachprod adminurl --open $cluster_name:1
+    echo "roachprod cluster set up"
 fi
 
-echo "init workload? Press y"
-read init
-if [[ $init == "y" ]]; then
+if [[ "$2" == "init" ]]; then 
   roachprod run $cluster_name:$total_nodes -- "tmux new -d -s tpce-import \"sudo docker run cockroachdb/tpc-e:latest --init --customers=$tpce_customers --racks=$crdb_nodes \$(cat hosts.txt)\""
   echo "tpce init has begun. Do not run anything on cluster until
   after init process completes. To observe init script, run: 
@@ -59,11 +74,9 @@ followed by:
   exit 0
 fi
 
-collection="gs://cockroach-fixtures/backups/tpc-e/rev-history=true,inc-count=$inc_count,cluster/customers=$tpce_customers/$crdb_version?AUTH=implicit"
+collection="gs://cockroach-fixtures/backups/tpc-e/customers=$tpce_customers/$crdb_version/inc-count=$inc_count?AUTH=implicit"
 
-echo "setup backup schedule? Press y"
-read backup
-if [[ $backup == "y" ]]; then
+if [[ "$2" == "backup" ]]; then
   roachprod sql $cluster_name:1 -- -e "ALTER RANGE default CONFIGURE ZONE USING gc.ttlseconds = 90000"
   
   # This backup schedule will first run a full backup immediately and then the
@@ -79,19 +92,7 @@ if [[ $backup == "y" ]]; then
   roachprod sql $cluster_name:1 -- -e "$schedule_cmd"
 fi
 
-echo "run tpce workload? Press y"
-read run
-if [[ $run == "y" ]]; then
+if [[ "$2" == "run" ]]; then
   roachprod run $cluster_name:$total_nodes -- "tmux new -d -s tpce-driver \"sudo docker run cockroachdb/tpc-e:latest --customers=$tpce_customers --racks=$crdb_nodes --duration=$duration \$(cat hosts.txt)\""
-fi
-
-if [[ $monitor == "y" ]]; then
-  tmux
-  scheduleCount=$(roachprod sql $cluster_name:1 -- -e "SELECT * FROM [SELECT count(DISTINCT end_time) FROM [SHOW BACKUP FROM LATEST IN '$collection']] WHERE count > $inc_count")
-  echo "Backup Chain Length\n $scheduleCount"
-  if [[ $scheduleCount != *"0 rows"* ]]; then
-    echo "Cancelling schedule"
-    roachprod sql $cluster_name:1 -- -e "DROP SCHEDULES WITH x AS (SHOW SCHEDULES) SELECT id FROM x WHERE label = 'schedule_cluster'"
-  fi
 fi
 
