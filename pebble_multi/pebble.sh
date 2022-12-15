@@ -17,7 +17,7 @@ roachprod create $name --nodes=1 --gce-machine-type=n2-standard-16 --local-ssd=f
 roachprod put $name $binary.o
 
 # Run the workload until lsm is 300 GB
-roachprod run $name -- "tmux new -d -s ycsb \"./$binary.o bench ycsb /mnt/data1 --workload F --initial-keys 100000 -c $workers --max-size=300000 -d 0m --wait-compactions\""
+roachprod run $name -- "tmux new -d -s ycsb \"./$binary.o bench ycsb /mnt/data1 --workload F --initial-keys 100000 -c $workers --max-size=300000 -d 0m --wait-compactions > output.txt\""
 
 echo "Began ycsb workload:
 roachprod cluster: $name
