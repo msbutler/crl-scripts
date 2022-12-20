@@ -73,8 +73,8 @@ if [[ "$2" == "setup" ]]; then
     rm hosts.txt
     roachprod stage $cluster_name:1-$crdb_nodes release $crdb_version
     roachprod start $cluster_name:1-$crdb_nodes --racks=$crdb_nodes
-    roachprod adminurl --open $cluster_name:1
-    echo "roachprod cluster set up"
+    roachprod extend $cluster_name -l 48
+    echo "roachprod cluster $cluster_name  is set up"
 fi
 
 if [[ "$2" == "init" ]]; then 
