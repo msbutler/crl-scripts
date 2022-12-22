@@ -11,8 +11,7 @@
 # example, `./roachprod-tpce.sh tpce10TB`
 set -e
 
-. ./$1.sh
-let total_nodes=$crdb_nodes+1
+. ./morevars.sh $1
 
 if [[ "$2" == "help" ]]; then
   echo "This script makes it a bit easier to spin up a roachprod cluster to run
@@ -27,8 +26,8 @@ Available commands:
 - run: runs a tpce workload.
 - backup: begins a backup schedule that writes to the cockroach-fixtures
   bucket. If $cloud is aws, write s3, else gs.
-- monitor: creates a tmux session that counts the number of incremental backups
-  in the latest full backup chain. TODO(msbutler): integrate in script
+- monitor: creates a tmux session that cancels the backup schedule once the 
+  target number of incremental backups are written.
 "
 
 echo "config from $1.sh:
@@ -47,6 +46,7 @@ tpce:
 backup:
   inc_count: $inc_count
   inc_crontab: $inc_crontab
+  collection: $collection
 "
   exit 0
 fi
@@ -60,9 +60,9 @@ fi
 if [[ "$2" == "setup" ]]; then 
     
     if [[ "$cloud" == "gce" ]]; then
-    	roachprod create $cluster_name --nodes=$total_nodes --gce-machine-type=$machine_type --local-ssd=false --gce-pd-volume-size=$vol_size --gce-min-cpu-platform='Intel Ice Lake'
+    	roachprod create $cluster_name -c gce --nodes=$total_nodes --gce-machine-type=$machine_type --local-ssd=false --gce-pd-volume-size=$vol_size --gce-min-cpu-platform='Intel Ice Lake'
     elif [[ "$cloud" == "aws" ]]; then
-	roachprod create $cluster_name --nodes=$total_nodes --aws-machine-type=$machine_type --local-ssd=false --aws-ebs-volume-size=$vol_size
+	roachprod create $cluster_name -c aws --nodes=$total_nodes --aws-machine-type=$machine_type --local-ssd=false --aws-ebs-volume-size=$vol_size
     else
 	echo "only aws and gce clouds are supported"
   	exit 1  
@@ -73,7 +73,7 @@ if [[ "$2" == "setup" ]]; then
     rm hosts.txt
     roachprod stage $cluster_name:1-$crdb_nodes release $crdb_version
     roachprod start $cluster_name:1-$crdb_nodes --racks=$crdb_nodes
-    roachprod extend $cluster_name -l 48
+    roachprod extend $cluster_name -l 48h
     echo "roachprod cluster $cluster_name  is set up"
 fi
 
@@ -87,12 +87,6 @@ followed by:
   exit 0
 fi
 
-prefix="gs"
-if [[ $cloud == "aws" ]]; then
-  prefix="s3"
-fi
-
-collection="$prefix://cockroach-fixtures/backups/tpc-e/customers=$tpce_customers/$crdb_version/inc-count=$inc_count?AUTH=implicit"
 
 if [[ "$2" == "backup" ]]; then
   roachprod sql $cluster_name:1 -- -e "ALTER RANGE default CONFIGURE ZONE USING gc.ttlseconds = 90000"
@@ -112,5 +106,9 @@ fi
 
 if [[ "$2" == "run" ]]; then
   roachprod run $cluster_name:$total_nodes -- "tmux new -d -s tpce-driver \"sudo docker run cockroachdb/tpc-e:latest --customers=$tpce_customers --racks=$crdb_nodes --duration=$duration \$(cat hosts.txt)\""
-fi
 
+if [[ "$2" == "monitor" ]]; then
+  echo "About to start a tmux session. Make sure nothing can kill it!"
+  echo "Pro tip: run this on your gce worker after calling sudo touch /.active"
+  tmux new -d -s monitor "./monitor.sh $1"
+fi

@@ -7,10 +7,10 @@ crdb_nodes=4
 cluster_name=$CLUSTER-default
 crdb_version=v22.2.0
 cloud=aws
-machine_type=n2-standard-8
+machine_type=m5.xlarge
 vol_size=1000
 
-# tpce init; creates about ?GB of data
+# tpce init; creates about 400GB of data
 tpce_customers=25000
 
 # scheduled backup (runs every 15 minutes, for 12 hours once the full completes)
