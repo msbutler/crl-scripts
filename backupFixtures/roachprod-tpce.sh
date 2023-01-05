@@ -79,7 +79,8 @@ fi
 
 if [[ "$2" == "init" ]]; then 
   roachprod run $cluster_name:$total_nodes -- "tmux new -d -s tpce-import \"sudo docker run cockroachdb/tpc-e:latest --init --customers=$tpce_customers --racks=$crdb_nodes \$(cat hosts.txt)\""
-  echo "tpce init has begun. Do not run anything on cluster until
+  echo "Success!
+  tpce init has begun. Do not run anything on cluster until
   after init process completes. To observe init script, run: 
   roachprod ssh $cluster_name:$total_nodes
 followed by:
@@ -106,6 +107,7 @@ fi
 
 if [[ "$2" == "run" ]]; then
   roachprod run $cluster_name:$total_nodes -- "tmux new -d -s tpce-driver \"sudo docker run cockroachdb/tpc-e:latest --customers=$tpce_customers --racks=$crdb_nodes --duration=$duration \$(cat hosts.txt)\""
+fi
 
 if [[ "$2" == "monitor" ]]; then
   echo "About to start a tmux session. Make sure nothing can kill it!"

@@ -10,4 +10,4 @@ if [[ $cloud == "aws" ]]; then
   prefix="s3"
 fi
 
-collection="$prefix://cockroach-fixtures/backups/tpc-e/customers=$tpce_customers/$crdb_version/inc-count=$inc_count?AUTH=implicit"
+collection="$prefix://cockroach-fixtures/backups/tpc-e/customers=$tpce_customers/$crdb_version/inc-count=$inc_count$auth"
