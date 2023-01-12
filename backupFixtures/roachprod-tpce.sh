@@ -112,5 +112,5 @@ fi
 if [[ "$2" == "monitor" ]]; then
   echo "About to start a tmux session. Make sure nothing can kill it!"
   echo "Pro tip: run this on your gce worker after calling sudo touch /.active"
-  tmux new -d -s monitor "./monitor.sh $1"
+  tmux new -d -s monitor "./monitor.sh $1 > monitor.log"
 fi
