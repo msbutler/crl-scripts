@@ -6,24 +6,27 @@
 
 . ./morevars.sh $1
 
-roachprod list | grep $cluster_name
 while :
 do
-  # sleep for 300 seconds, aka 5 mins
   sleep 300
   echo "Checking backup schedule"
-  scheduleExists=$(roachprod sql $cluster_name:1 -- -e "SELECT label FROM [SHOW SCHEDULES] WHERE label ='schedule_cluster'")
-  if [[ $scheduleExists == *"0 rows"* ]]; then
+  declare scheduleExists=($(./cockroach sql --insecure -e "SELECT label FROM [SHOW SCHEDULES] WHERE label ='schedule_cluster'"))
+  if [[ ${scheduleExists[1]} == "" ]]; then
     echo "Schedule does not exist"
+    continue
+  fi
+  
+  declare inc_running=($(./cockroach sql --insecure -e "SELECT count(*) FROM [SHOW SCHEDULES] WHERE label ='schedule_cluster' and schedule_status='ACTIVE'"))
+  if (( ${inc_running[1]} < 2 )); then
+    # implies the incremental schedule has not started 
+    continue 
   fi
 
-  backupCount=$(roachprod sql $cluster_name:1 -- -e "SELECT * FROM [SELECT count(DISTINCT end_time) FROM [SHOW BACKUP FROM LATEST IN '$collection']] WHERE count < $inc_count")
-  if [[ $backupCount == *"1 row"* ]]; then
-    echo "Backup count
-    $backupCount"
-  elif [[ $backupCount == *"0 rows"* ]]; then
+  declare backupCount=($(./cockroach sql --insecure -e "SELECT count(DISTINCT end_time) FROM [SHOW BACKUP FROM LATEST IN '$collection']"))
+  echo "Backup count ${backupCount[1]}"
+  if (( ${backupCount[1]} > $inc_count )); then
     echo "Cancelling schedule"
-    roachprod sql $cluster_name:1 -- -e "DROP SCHEDULES WITH x AS (SHOW SCHEDULES) SELECT id FROM x WHERE label = 'schedule_cluster'"
+    ./cockroach sql --insecure -e "DROP SCHEDULES WITH x AS (SHOW SCHEDULES) SELECT id FROM x WHERE label = 'schedule_cluster'"
     exit 0
   fi
 

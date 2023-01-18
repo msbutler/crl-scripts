@@ -29,7 +29,7 @@ Available commands:
   target number of incremental backups are written.
 "
 
-echo "config from $1.sh:
+echo "config from $1:
 hardware: 
   crdb_nodes: $crdb_nodes 
   total_nodes: $total_nodes
@@ -85,18 +85,22 @@ if [[ "$2" == "init" ]]; then
     fi
   fi
 
-  roachprod run $cluster_name:$total_nodes -- "tmux new -d -s import \"$init_cmd\" > import.log"
+  roachprod run $cluster_name:$total_nodes -- "tmux new -d -s import \"$init_cmd\""
   echo "Success!
   init has begun. Do not run anything on cluster until
   after init process completes. To observe init script, run: 
   roachprod ssh $cluster_name:$total_nodes
-followed by:
+and attach to the tmux session:
   tmux attach-session -t import "
   exit 0
 fi
 
 if [[ "$2" == "run" ]]; then
-  roachprod run $cluster_name:$total_nodes -- "tmux new -d -s run \"$run_cmd\" > run.log"
+  roachprod run $cluster_name:$total_nodes -- "tmux new -d -s run \"$run_cmd\""
+  echo "Workload has began running! To observe progress, run:
+  roachprod ssh $cluster_name:$total_nodes
+and look at the run.log:
+  tmux attach_session -t run "
 fi
 
 if [[ "$2" == "backup" ]]; then
@@ -114,7 +118,20 @@ if [[ "$2" == "backup" ]]; then
 fi
 
 if [[ "$2" == "monitor" ]]; then
+  roachprod put $cluster_name:1 "conf_default" "conf_default"
+  roachprod put $cluster_name:1 "monitor.sh" "monitor.sh"
+  roachprod put $cluster_name:1 "morevars.sh" "morevars.sh"
+  roachprod put $cluster_name:1 "$1" "$1"
+  roachprod run $cluster_name:1 -- "tmux new -d -s monitor \"./monitor.sh $1\"" 
+  echo "Monitor script is setup! After $inc_count backups have been created, the script will stop the backup schedule.
+to watch progress, run
+  roachprod ssh $cluster_name:1
+and either inspect the log at monitor.log or attach to the tmux session
+  tmux attach-session -t monitor"
+fi
+
+if [[ "$2" == "monitor-old" ]]; then
   echo "About to start a tmux session. Make sure nothing can kill it!"
   echo "Pro tip: run this on your gce worker after calling sudo touch /.active"
-  tmux new -d -s monitor "./monitor.sh $1 > monitor.log"
+  tmux new -d -s monitor "./monitor-old.sh $1 > monitor.log"
 fi

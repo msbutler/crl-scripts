@@ -7,9 +7,10 @@
 cluster_name=$CLUSTER-tpcc
 
 # tpcc init; creates about 400GB of data
+# 13000 created 737 GB
 workload="tpc-c"
 workload_var=warehouses
-workload_val=13000
+workload_val=9000
 
 # tpce run
 duration=23h
