@@ -1,29 +1,28 @@
 #!/bin/bash
 
-# This script can be used to setup a roachprod cluster, init and run the tpce
-# workload. I'd recommend the following workflow:
+# This script can be used to setup a roachprod cluster, init and run a workload 
+# and create backup fixture. I'd recommend the following workflow:
 # - run script once to setup the cluster and init the workload
 # - wait until the tmux session monitoring initizialation has finished
 # - run the script again to setup the backup schedule and the workload, 
 #   skipping setup
 # 
 # To run the script, pass the config file name when executing this script. For
-# example, `./roachprod-tpce.sh tpce10TB`
+# example, `./fixture.sh tpce8TB`
 set -e
 
 . ./morevars.sh $1
 
 if [[ "$2" == "help" ]]; then
-  echo "This script makes it a bit easier to spin up a roachprod cluster to run
-the tpce workload and a backup schedule
+  echo "This script makes it a bit easier to update backup figures. 
 
 Run any of the following commands via:
-./roachprod-tpce [config_name] [cmd]
+./fixture.sh [config_name] [cmd]
 
 Available commands:
-- setup: creates a roachprod cluster that's ready to init a tpc-e workload.
-- init: inits a tpce workload.
-- run: runs a tpce workload.
+- setup: creates a roachprod cluster.
+- init: inits the workload, via bulk import.
+- run: runs the workload.
 - backup: begins a backup schedule that writes to the cockroach-fixtures
   bucket. If $cloud is aws, write s3, else gs.
 - monitor: creates a tmux session that cancels the backup schedule once the 
@@ -40,9 +39,11 @@ hardware:
 crdb:
   cluster_name: $cluster_name
   crdb_version: $crdb_version
-tpce: 
-  tpce_customers: $tpce_customers
+workload: $workload 
+  $workload_var: $workload_val
   duration: $duration
+  init_cmd: $init_cmd
+  run_cmd: $run_cmd
 backup:
   inc_count: $inc_count
   inc_crontab: $inc_crontab
@@ -51,11 +52,7 @@ backup:
   exit 0
 fi
 
-exists=$(gsutil ls gs://cockroach-fixtures/tpce-csv/customers=$tpce_customers | wc -l)
-if (( $exists == 0 )); then
-  echo "$tpce_customers customer fixture does not exist"
-  exit 1
-fi
+
 
 if [[ "$2" == "setup" ]]; then 
     
@@ -72,22 +69,35 @@ if [[ "$2" == "setup" ]]; then
     roachprod put $cluster_name:$total_nodes hosts.txt
     rm hosts.txt
     roachprod stage $cluster_name:1-$crdb_nodes release $crdb_version
+    roachprod stage $cluster_name:$total_nodes workload --os linux
     roachprod start $cluster_name:1-$crdb_nodes --racks=$crdb_nodes
     roachprod extend $cluster_name -l 48h
     echo "roachprod cluster $cluster_name  is set up"
 fi
 
-if [[ "$2" == "init" ]]; then 
-  roachprod run $cluster_name:$total_nodes -- "tmux new -d -s tpce-import \"sudo docker run cockroachdb/tpc-e:latest --init --customers=$tpce_customers --racks=$crdb_nodes \$(cat hosts.txt)\""
+if [[ "$2" == "init" ]]; then
+  if [[ "$workload" == "tpc-e" ]]; then
+    #without this check, we silently init the very small "fixed" fixture.  
+    exists=$(gsutil ls gs://cockroach-fixtures/tpce-csv/customers=$workload_val | wc -l)
+    if (( $exists == 0 )); then
+      echo "$tpce_customers customer fixture does not exist"
+      exit 1
+    fi
+  fi
+
+  roachprod run $cluster_name:$total_nodes -- "tmux new -d -s import \"$init_cmd\" > import.log"
   echo "Success!
-  tpce init has begun. Do not run anything on cluster until
+  init has begun. Do not run anything on cluster until
   after init process completes. To observe init script, run: 
   roachprod ssh $cluster_name:$total_nodes
 followed by:
-  tmux attach-session -t tpce-import "
+  tmux attach-session -t import "
   exit 0
 fi
 
+if [[ "$2" == "run" ]]; then
+  roachprod run $cluster_name:$total_nodes -- "tmux new -d -s run \"$run_cmd\" > run.log"
+fi
 
 if [[ "$2" == "backup" ]]; then
   roachprod sql $cluster_name:1 -- -e "ALTER RANGE default CONFIGURE ZONE USING gc.ttlseconds = 90000"
@@ -98,15 +108,9 @@ if [[ "$2" == "backup" ]]; then
   # begin the backup schedule at the beginning of the week, as a new full
   # backup will get created on Sunday at Midnight ;)
   #
-  # TODO(msbutler) automatically cancel the schedules once desired inc_count
-  # gets reached.
   schedule_cmd="CREATE SCHEDULE schedule_cluster FOR BACKUP INTO '$collection' WITH revision_history RECURRING '$inc_crontab' FULL BACKUP '@weekly' WITH SCHEDULE OPTIONS first_run = 'now'"
   echo "$schedule_cmd"
   roachprod sql $cluster_name:1 -- -e "$schedule_cmd"
-fi
-
-if [[ "$2" == "run" ]]; then
-  roachprod run $cluster_name:$total_nodes -- "tmux new -d -s tpce-driver \"sudo docker run cockroachdb/tpc-e:latest --customers=$tpce_customers --racks=$crdb_nodes --duration=$duration \$(cat hosts.txt)\""
 fi
 
 if [[ "$2" == "monitor" ]]; then

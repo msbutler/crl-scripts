@@ -1,6 +1,6 @@
 #!/bin/bash
 
-. ./default.sh
+. ./conf_default
 
 # hardware
 crdb_nodes=1
@@ -9,7 +9,8 @@ vol_size=100
 cloud=gce
 machine_type=n2-standard-4
 
-tpce_customers=1000
+#runs tpce
+workload_val=1000
 
 # scheduled backup (runs every 15 minutes)
 inc_count=8

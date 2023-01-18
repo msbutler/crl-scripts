@@ -1,6 +1,6 @@
 #!/bin/bash
 
-. ./default.sh
+. ./conf_default
 
 # hardware
 cluster_name=$CLUSTER-gce-default

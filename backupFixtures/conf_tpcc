@@ -1,0 +1,17 @@
+#!/bin/bash
+
+
+. ./conf_gce
+
+# hardware
+cluster_name=$CLUSTER-tpcc
+
+# tpcc init; creates about 400GB of data
+workload="tpc-c"
+workload_var=warehouses
+workload_val=13000
+
+# tpce run
+duration=23h
+
+

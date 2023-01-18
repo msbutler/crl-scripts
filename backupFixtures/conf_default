@@ -11,7 +11,9 @@ machine_type=m5.xlarge
 vol_size=1000
 
 # tpce init; creates about 400GB of data
-tpce_customers=25000
+workload="tpc-e"
+workload_var=customers
+workload_val=25000
 
 # scheduled backup (runs every 15 minutes, for 12 hours once the full completes)
 inc_count=48
