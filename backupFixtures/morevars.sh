@@ -20,6 +20,6 @@ if [[ $cloud == "aws" ]]; then
   prefix="s3"
   
   # temporary explicit auth while we add new fixtures to s3 from a gce machine
-  auth="?AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY&AWS_SECRET_ACCESS_KEY=$AWS_SECRET_KEY"
+  auth="?AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID&AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY"
 fi
 collection="$prefix://cockroach-fixtures/backups/$workload/$workload_var=$workload_val/$crdb_version/inc-count=$inc_count$auth"
