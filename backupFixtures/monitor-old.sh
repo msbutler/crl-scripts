@@ -19,8 +19,7 @@ do
 
   backupCount=$(roachprod sql $cluster_name:1 -- -e "SELECT * FROM [SELECT count(DISTINCT end_time) FROM [SHOW BACKUP FROM LATEST IN '$collection']] WHERE count < $inc_count")
   if [[ $backupCount == *"1 row"* ]]; then
-    echo "Backup count
-    $backupCount"
+    echo "$backupCount"
   elif [[ $backupCount == *"0 rows"* ]]; then
     echo "Cancelling schedule"
     roachprod sql $cluster_name:1 -- -e "DROP SCHEDULES WITH x AS (SHOW SCHEDULES) SELECT id FROM x WHERE label = 'schedule_cluster'"
