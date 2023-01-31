@@ -11,6 +11,12 @@ workload="tpc-c"
 workload_var=warehouses
 workload_val=7000
 
+# during tpcc run, lower the number of warehouses, or else the workload
+# overloads the 4 node, 8vcpu cluster and adds data too quickly relative to the
+# tpce workload. I know that during the tpce run, cpu utilization hovers around
+# 25%, while tpcc with 1000 warehouses, utilization will be around 50%.
+# by the end of the test, there's 480 GB of data in the cluster
+tpcc_run_val=1000
 
 # tpce run
 duration=23h

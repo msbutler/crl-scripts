@@ -1,0 +1,18 @@
+#!/bin/bash
+
+
+. ./conf_default
+
+# hardware
+cluster_name=$CLUSTER-bank
+
+# tpcc init; creates about 400GB of data
+workload="bank"
+workload_var=rows
+workload_val=12000000
+bank_payload_bytes=10240
+
+# tpce run
+duration=23h
+
+
