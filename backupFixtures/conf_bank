@@ -11,6 +11,7 @@ workload="bank"
 workload_var=rows
 workload_val=12000000
 bank_payload_bytes=10240
+bank_run_payload_bytes=256
 
 # tpce run
 duration=23h
