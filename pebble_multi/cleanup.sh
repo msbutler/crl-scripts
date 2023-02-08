@@ -4,7 +4,7 @@ set -e
 binary=$1
 workers=$2
 name=$CLUSTER-$binary-$workers
-dir=$binary_$workers
+dir=$binary-$workers
 echo "$dir"
 mkdir -p $dir  
 roachprod get $name output.txt $dir/output.txt 
