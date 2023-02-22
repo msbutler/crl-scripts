@@ -6,14 +6,12 @@
 # hardware
 cluster_name=$CLUSTER-bank
 
-# tpcc init; creates about 400GB of data
+# bank init; creates about 375GB of data
 workload="bank"
 workload_var=rows
-workload_val=12000000
+workload_val=13000000
 bank_payload_bytes=10240
 bank_run_payload_bytes=256
-
-# tpce run
-duration=23h
+bank_run_max_rate=100
 
 

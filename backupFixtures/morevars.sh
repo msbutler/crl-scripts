@@ -14,7 +14,7 @@ elif [[ "$workload" == "tpc-c" ]]; then
   run_cmd="./workload run tpcc --warehouses=$tpcc_run_val --duration=$duration --tolerate-errors {pgurl:1-$crdb_nodes}"
 elif [[ "$workload" == "bank" ]]; then
   init_cmd="./workload init bank --data-loader import --rows=$workload_val --payload-bytes=$bank_payload_bytes {pgurl:1-$crdb_nodes}" 
-  run_cmd="./workload run bank --payload-bytes=$bank_run_payload_bytes --duration=$duration --tolerate-errors {pgurl:1-$crdb_nodes}"
+  run_cmd="./workload run bank --payload-bytes=$bank_run_payload_bytes --duration=$duration --tolerate-errors --max-rate=$bank_run_max_rate {pgurl:1-$crdb_nodes}"
 fi
 
 # backup variables
