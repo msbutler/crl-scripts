@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+# This script grabs the target binary from the pebble repo and runs the replay
+# bench.
+
 DISK_NAME="$USER-kv0short"
 pebble_repo="/home/michaelbutler/go/src/github.com/cockroachdb/pebble"
 cp $pebble_repo/$1.o $1.o
