@@ -13,7 +13,7 @@ git switch butler-metrics-explore
 # with all commits, build multi level with l0 input
 go build -o multi-l0.o ./cmd/pebble
 
-# remove top commit and build with l0 input
+# remove top commit and build without l0 input
 git reset HEAD~1 --hard
 go build -o multi.o ./cmd/pebble
 
