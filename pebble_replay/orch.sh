@@ -11,7 +11,7 @@ mkdir replay_logs
 cd replay_logs
 benchstat control.log multi.log > bench_control_v_multi.log
 benchstat control.log multi-l0.log > bench_control_v_multi-l0.log
-benchstat multi.log multi-l0.log > multi_v_multi-l0.log
+benchstat multi.log multi-l0.log > bench_multi_v_multi-l0.log
 cd ..
 
 zip -r replay_multi.zip replay_logs
