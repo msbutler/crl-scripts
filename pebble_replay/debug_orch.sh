@@ -2,10 +2,14 @@
 set -e
 
 # this script runs the control bench three times 
-rm control_v_*
+rm control_v_* -f
 rm replay_logs_* -rf
-rm replay_multi*
+rm replay_multi* -f
 
+# hydrate the page cache with a single run
+./replay.sh control 1
+
+# run the main workloads
 ./control_orch.sh
 cp -r replay_logs replay_logs_1
 cp -r replay_multi.zip replay_multi_1.zip
