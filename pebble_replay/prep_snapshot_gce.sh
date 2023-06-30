@@ -1,6 +1,7 @@
 #!/bin/bash
 set -e
 
+. ./config.sh
 echo $DISK_NAME
 
 sudo mkdir -p "/mnt/disks/$DISK_NAME"
