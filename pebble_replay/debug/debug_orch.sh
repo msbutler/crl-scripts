@@ -5,9 +5,10 @@ set -e
 rm control_v_* -f
 rm replay_logs_* -rf
 rm replay_multi* -f
+mkdir replay_logs
 
 # hydrate the page cache with a single run
-./replay.sh control 1
+./replay.sh control 1 
 
 # run the main workloads
 ./control_orch.sh

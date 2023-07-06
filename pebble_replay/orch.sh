@@ -7,9 +7,9 @@ set -e
 rm -rf replay_logs
 mkdir replay_logs
 
-./replay.sh multi-l0
-./replay.sh multi
-./replay.sh control
+./replay.sh multi-l0 10
+./replay.sh multi 10
+./replay.sh control 10
 
 cd replay_logs
 benchstat control.log multi.log > bench_control_v_multi.log

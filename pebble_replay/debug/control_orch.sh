@@ -7,6 +7,6 @@ set -e
 rm -rf replay_logs
 mkdir replay_logs
 
-./replay.sh control 5
+./replay.sh control 8
 
 zip -r replay_multi.zip replay_logs
